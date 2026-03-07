@@ -28,6 +28,10 @@ import androidx.compose.ui.unit.dp
 import com.wisp.app.nostr.NostrEvent
 import com.wisp.app.ui.component.NoteActions
 import com.wisp.app.ui.component.PostCard
+import com.wisp.app.ui.component.SoftwareAppCard
+import com.wisp.app.ui.component.SoftwareReleaseCard
+import com.wisp.app.ui.component.SoftwareAssetCard
+import com.wisp.app.nostr.Nip82
 import com.wisp.app.repo.EventRepository
 import com.wisp.app.repo.Nip05Repository
 import com.wisp.app.repo.TranslationRepository
@@ -165,41 +169,69 @@ private fun HashtagFeedItem(
         translationRepo?.getState(event.id) ?: com.wisp.app.repo.TranslationState()
     }
 
-    PostCard(
-        event = event,
-        profile = profile,
-        onReply = { noteActions.onReply(event) },
-        onProfileClick = { noteActions.onProfileClick(event.pubkey) },
-        onNavigateToProfile = noteActions.onProfileClick,
-        onNoteClick = { noteActions.onNoteClick(event.id) },
-        onReact = { emoji -> noteActions.onReact(event, emoji) },
-        userReactionEmojis = userEmojis,
-        onRepost = { noteActions.onRepost(event) },
-        onQuote = { noteActions.onQuote(event) },
-        hasUserReposted = hasUserReposted,
-        repostCount = repostCount,
-        onZap = { noteActions.onZap(event) },
-        hasUserZapped = hasUserZapped,
-        likeCount = likeCount,
-        replyCount = replyCount,
-        zapSats = zapSats,
-        eventRepo = eventRepo,
-        reactionDetails = reactionDetails,
-        zapDetails = zapDetails,
-        repostDetails = repostPubkeys,
-        reactionEmojiUrls = reactionEmojiUrls,
-        onNavigateToProfileFromDetails = noteActions.onProfileClick,
-        onFollowAuthor = { noteActions.onFollowAuthor(event.pubkey) },
-        onBlockAuthor = { noteActions.onBlockAuthor(event.pubkey) },
-        isFollowingAuthor = noteActions.isFollowing(event.pubkey),
-        isOwnEvent = event.pubkey == userPubkey,
-        nip05Repo = nip05Repo,
-        onAddToList = { noteActions.onAddToList(event.id) },
-        onPin = { noteActions.onPin(event.id) },
-        onDelete = { noteActions.onDelete(event.id, event.kind) },
-        onQuotedNoteClick = noteActions.onNoteClick,
-        noteActions = noteActions,
-        translationState = translationState,
-        onTranslate = { translationRepo?.translate(event.id, event.content) }
-    )
+    when (event.kind) {
+        Nip82.KIND_SOFTWARE_APPLICATION -> {
+            SoftwareAppCard(
+                event = event,
+                profile = profile,
+                onProfileClick = { noteActions.onProfileClick(event.pubkey) },
+                onNoteClick = { noteActions.onNoteClick(event.id) }
+            )
+        }
+        Nip82.KIND_SOFTWARE_RELEASE -> {
+            SoftwareReleaseCard(
+                event = event,
+                profile = profile,
+                onProfileClick = { noteActions.onProfileClick(event.pubkey) },
+                onNoteClick = { noteActions.onNoteClick(event.id) }
+            )
+        }
+        Nip82.KIND_SOFTWARE_ASSET -> {
+            SoftwareAssetCard(
+                event = event,
+                profile = profile,
+                onProfileClick = { noteActions.onProfileClick(event.pubkey) },
+                onNoteClick = { noteActions.onNoteClick(event.id) }
+            )
+        }
+        else -> {
+            PostCard(
+                event = event,
+                profile = profile,
+                onReply = { noteActions.onReply(event) },
+                onProfileClick = { noteActions.onProfileClick(event.pubkey) },
+                onNavigateToProfile = noteActions.onProfileClick,
+                onNoteClick = { noteActions.onNoteClick(event.id) },
+                onReact = { emoji -> noteActions.onReact(event, emoji) },
+                userReactionEmojis = userEmojis,
+                onRepost = { noteActions.onRepost(event) },
+                onQuote = { noteActions.onQuote(event) },
+                hasUserReposted = hasUserReposted,
+                repostCount = repostCount,
+                onZap = { noteActions.onZap(event) },
+                hasUserZapped = hasUserZapped,
+                likeCount = likeCount,
+                replyCount = replyCount,
+                zapSats = zapSats,
+                eventRepo = eventRepo,
+                reactionDetails = reactionDetails,
+                zapDetails = zapDetails,
+                repostDetails = repostPubkeys,
+                reactionEmojiUrls = reactionEmojiUrls,
+                onNavigateToProfileFromDetails = noteActions.onProfileClick,
+                onFollowAuthor = { noteActions.onFollowAuthor(event.pubkey) },
+                onBlockAuthor = { noteActions.onBlockAuthor(event.pubkey) },
+                isFollowingAuthor = noteActions.isFollowing(event.pubkey),
+                isOwnEvent = event.pubkey == userPubkey,
+                nip05Repo = nip05Repo,
+                onAddToList = { noteActions.onAddToList(event.id) },
+                onPin = { noteActions.onPin(event.id) },
+                onDelete = { noteActions.onDelete(event.id, event.kind) },
+                onQuotedNoteClick = noteActions.onNoteClick,
+                noteActions = noteActions,
+                translationState = translationState,
+                onTranslate = { translationRepo?.translate(event.id, event.content) }
+            )
+        }
+    }
 }

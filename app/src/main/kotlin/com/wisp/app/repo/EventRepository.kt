@@ -4,6 +4,7 @@ import android.util.LruCache
 import com.wisp.app.nostr.Nip09
 import com.wisp.app.nostr.Nip30
 import com.wisp.app.nostr.Nip57
+import com.wisp.app.nostr.Nip82
 import com.wisp.app.nostr.NostrEvent
 import com.wisp.app.nostr.NostrEvent.Companion.fromJson
 import com.wisp.app.nostr.ProfileData
@@ -208,6 +209,11 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
                 // Only show root notes in feed, not replies
                 val isReply = event.tags.any { it.size >= 2 && it[0] == "e" }
                 if (!isReply) binaryInsert(event, fromFeed = true)
+            }
+            Nip82.KIND_SOFTWARE_APPLICATION,
+            Nip82.KIND_SOFTWARE_RELEASE,
+            Nip82.KIND_SOFTWARE_ASSET -> {
+                binaryInsert(event, fromFeed = true)
             }
             6 -> {
                 // Repost: parse embedded event from content and insert it into the feed
@@ -736,12 +742,14 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
         val snapshot = eventCache.snapshot()
         var inserted = 0
         for ((_, event) in snapshot) {
-            if (event.kind != 1) continue
+            if (event.kind != 1 && !Nip82.isSoftwareEvent(event.kind)) continue
             if (event.created_at < sinceTimestamp) continue
             if (muteRepo?.isBlocked(event.pubkey) == true) continue
             if (deletedEventsRepo?.isDeleted(event.id) == true) continue
-            val isReply = event.tags.any { it.size >= 2 && it[0] == "e" }
-            if (isReply) continue
+            if (!Nip82.isSoftwareEvent(event.kind)) {
+                val isReply = event.tags.any { it.size >= 2 && it[0] == "e" }
+                if (isReply) continue
+            }
             val sortTime = feedSortTime.get(event.id) ?: event.created_at
             binaryInsert(event, sortTime = sortTime)
             inserted++
@@ -758,6 +766,13 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
         if (deletedEventsRepo?.isDeleted(event.id) == true) return
 
         when (event.kind) {
+            Nip82.KIND_SOFTWARE_APPLICATION,
+            Nip82.KIND_SOFTWARE_RELEASE,
+            Nip82.KIND_SOFTWARE_ASSET -> {
+                eventCache.put(event.id, event)
+                relayHintStore?.extractHintsFromTags(event)
+                relayFeedBinaryInsert(event)
+            }
             1 -> {
                 val isReply = event.tags.any { it.size >= 2 && it[0] == "e" }
                 if (!isReply) {

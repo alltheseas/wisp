@@ -9,6 +9,7 @@ import com.wisp.app.nostr.Nip30
 import com.wisp.app.nostr.Nip51
 import com.wisp.app.nostr.Nip57
 import com.wisp.app.nostr.Nip65
+import com.wisp.app.nostr.Nip82
 import com.wisp.app.nostr.NostrEvent
 import com.wisp.app.nostr.NostrSigner
 import com.wisp.app.nostr.toHex
@@ -334,7 +335,7 @@ class EventRouter(
                 eventRepo.addRelayFeedEvent(event)
                 onRelayFeedEventReceived()
                 eventRepo.addEventRelay(event.id, relayUrl)
-                if (event.kind == 1) {
+                if (event.kind == 1 || Nip82.isSoftwareEvent(event.kind)) {
                     metadataFetcher.fetchQuotedEvents(event)
                     if (eventRepo.getProfileData(event.pubkey) == null) {
                         metadataFetcher.addToPendingProfiles(event.pubkey)
@@ -352,7 +353,7 @@ class EventRouter(
             } else if (isFeedSub) {
                 eventRepo.addEvent(event)
                 eventRepo.addEventRelay(event.id, relayUrl)
-                if (event.kind == 1) {
+                if (event.kind == 1 || Nip82.isSoftwareEvent(event.kind)) {
                     metadataFetcher.fetchQuotedEvents(event)
                     if (eventRepo.getProfileData(event.pubkey) == null) {
                         metadataFetcher.addToPendingProfiles(event.pubkey)

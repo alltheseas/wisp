@@ -48,6 +48,10 @@ import com.wisp.app.repo.RelayInfoRepository
 import com.wisp.app.repo.TranslationRepository
 import com.wisp.app.ui.component.NoteActions
 import com.wisp.app.ui.component.PostCard
+import com.wisp.app.ui.component.SoftwareAppCard
+import com.wisp.app.ui.component.SoftwareReleaseCard
+import com.wisp.app.ui.component.SoftwareAssetCard
+import com.wisp.app.nostr.Nip82
 import com.wisp.app.viewmodel.ThreadViewModel
 import kotlin.math.min
 import kotlinx.coroutines.launch
@@ -200,52 +204,83 @@ fun ThreadScreen(
                         val translationState = remember(translationVersion, event.id) {
                             translationRepo?.getState(event.id) ?: com.wisp.app.repo.TranslationState()
                         }
-                        PostCard(
-                            event = event,
-                            profile = profileData,
-                            onReply = { onReply(event) },
-                            onProfileClick = { onProfileClick(event.pubkey) },
-                            onNavigateToProfile = onProfileClick,
-                            onNoteClick = { onNoteClick(event) },
-                            onReact = { emoji -> onReact(event, emoji) },
-                            userReactionEmojis = userEmojis,
-                            onRepost = { onRepost(event) },
-                            onQuote = { onQuote(event) },
-                            hasUserReposted = hasUserReposted,
-                            repostCount = repostCount,
-                            onZap = { onZap(event) },
-                            hasUserZapped = hasUserZapped,
-                            likeCount = likeCount,
-                            replyCount = replyCount,
-                            zapSats = zapSats,
-                            isZapAnimating = event.id in zapAnimatingIds,
-                            isZapInProgress = event.id in zapInProgressIds,
-                            eventRepo = eventRepo,
-                            reactionDetails = reactionDetails,
-                            zapDetails = zapDetailsList,
-                            repostDetails = repostPubkeys,
-                            reactionEmojiUrls = eventReactionEmojiUrls,
-                            resolvedEmojis = resolvedEmojis,
-                            unicodeEmojis = unicodeEmojis,
-                            onOpenEmojiLibrary = onOpenEmojiLibrary,
-                            relayIcons = relayIcons,
-                            onNavigateToProfileFromDetails = onProfileClick,
-                            onFollowAuthor = { onToggleFollow(event.pubkey) },
-                            onBlockAuthor = { onBlockUser(event.pubkey) },
-                            isFollowingAuthor = followList.let { contactRepo.isFollowing(event.pubkey) },
-                            isOwnEvent = event.pubkey == userPubkey,
-                            onAddToList = { onAddToList(event.id) },
-                            isInList = event.id in listedIds,
-                            onPin = { onTogglePin(event.id) },
-                            isPinned = event.id in pinnedIds,
-                            onDelete = { onDeleteEvent(event.id, event.kind) },
-                            nip05Repo = nip05Repo,
-                            onQuotedNoteClick = onQuotedNoteClick,
-                            noteActions = noteActions,
-                            translationState = translationState,
-                            onTranslate = { translationRepo?.translate(event.id, event.content) },
-                            modifier = Modifier.padding(start = (min(depth, 4) * 24).dp)
-                        )
+                        when (event.kind) {
+                            Nip82.KIND_SOFTWARE_APPLICATION -> {
+                                SoftwareAppCard(
+                                    event = event,
+                                    profile = profileData,
+                                    onProfileClick = { onProfileClick(event.pubkey) },
+                                    onNoteClick = { onNoteClick(event) },
+                                    modifier = Modifier.padding(start = (min(depth, 4) * 24).dp)
+                                )
+                            }
+                            Nip82.KIND_SOFTWARE_RELEASE -> {
+                                SoftwareReleaseCard(
+                                    event = event,
+                                    profile = profileData,
+                                    onProfileClick = { onProfileClick(event.pubkey) },
+                                    onNoteClick = { onNoteClick(event) },
+                                    modifier = Modifier.padding(start = (min(depth, 4) * 24).dp)
+                                )
+                            }
+                            Nip82.KIND_SOFTWARE_ASSET -> {
+                                SoftwareAssetCard(
+                                    event = event,
+                                    profile = profileData,
+                                    onProfileClick = { onProfileClick(event.pubkey) },
+                                    onNoteClick = { onNoteClick(event) },
+                                    modifier = Modifier.padding(start = (min(depth, 4) * 24).dp)
+                                )
+                            }
+                            else -> {
+                                PostCard(
+                                    event = event,
+                                    profile = profileData,
+                                    onReply = { onReply(event) },
+                                    onProfileClick = { onProfileClick(event.pubkey) },
+                                    onNavigateToProfile = onProfileClick,
+                                    onNoteClick = { onNoteClick(event) },
+                                    onReact = { emoji -> onReact(event, emoji) },
+                                    userReactionEmojis = userEmojis,
+                                    onRepost = { onRepost(event) },
+                                    onQuote = { onQuote(event) },
+                                    hasUserReposted = hasUserReposted,
+                                    repostCount = repostCount,
+                                    onZap = { onZap(event) },
+                                    hasUserZapped = hasUserZapped,
+                                    likeCount = likeCount,
+                                    replyCount = replyCount,
+                                    zapSats = zapSats,
+                                    isZapAnimating = event.id in zapAnimatingIds,
+                                    isZapInProgress = event.id in zapInProgressIds,
+                                    eventRepo = eventRepo,
+                                    reactionDetails = reactionDetails,
+                                    zapDetails = zapDetailsList,
+                                    repostDetails = repostPubkeys,
+                                    reactionEmojiUrls = eventReactionEmojiUrls,
+                                    resolvedEmojis = resolvedEmojis,
+                                    unicodeEmojis = unicodeEmojis,
+                                    onOpenEmojiLibrary = onOpenEmojiLibrary,
+                                    relayIcons = relayIcons,
+                                    onNavigateToProfileFromDetails = onProfileClick,
+                                    onFollowAuthor = { onToggleFollow(event.pubkey) },
+                                    onBlockAuthor = { onBlockUser(event.pubkey) },
+                                    isFollowingAuthor = followList.let { contactRepo.isFollowing(event.pubkey) },
+                                    isOwnEvent = event.pubkey == userPubkey,
+                                    onAddToList = { onAddToList(event.id) },
+                                    isInList = event.id in listedIds,
+                                    onPin = { onTogglePin(event.id) },
+                                    isPinned = event.id in pinnedIds,
+                                    onDelete = { onDeleteEvent(event.id, event.kind) },
+                                    nip05Repo = nip05Repo,
+                                    onQuotedNoteClick = onQuotedNoteClick,
+                                    noteActions = noteActions,
+                                    translationState = translationState,
+                                    onTranslate = { translationRepo?.translate(event.id, event.content) },
+                                    modifier = Modifier.padding(start = (min(depth, 4) * 24).dp)
+                                )
+                            }
+                        }
                     }
                 }
                 AnimatedVisibility(

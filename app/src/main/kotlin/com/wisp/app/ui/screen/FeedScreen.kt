@@ -67,6 +67,10 @@ import com.wisp.app.nostr.NostrEvent
 import com.wisp.app.ui.component.NoteActions
 import com.wisp.app.ui.component.EmojiLibrarySheet
 import com.wisp.app.ui.component.PostCard
+import com.wisp.app.ui.component.SoftwareAppCard
+import com.wisp.app.ui.component.SoftwareReleaseCard
+import com.wisp.app.ui.component.SoftwareAssetCard
+import com.wisp.app.nostr.Nip82
 import com.wisp.app.ui.component.ProfilePicture
 import com.wisp.app.ui.component.RelayIcon
 import com.wisp.app.ui.component.WispDrawerContent
@@ -870,54 +874,82 @@ private fun FeedItem(
     val translationState = remember(translationVersion, event.id) {
         viewModel.translationRepo.getState(event.id)
     }
-    PostCard(
-        event = event,
-        profile = profileData,
-        onReply = onReply,
-        onProfileClick = onProfileClick,
-        onNavigateToProfile = onNavigateToProfile,
-        onNoteClick = onNoteClick,
-        onReact = onReact,
-        userReactionEmojis = userEmojis,
-        onRepost = onRepost,
-        onQuote = onQuote,
-        hasUserReposted = hasUserReposted,
-        repostCount = repostCount,
-        onZap = onZap,
-        hasUserZapped = hasUserZapped,
-        likeCount = likeCount,
-        replyCount = replyCount,
-        zapSats = zapSats,
-        isZapAnimating = isZapAnimating,
-        isZapInProgress = isZapInProgress,
-        eventRepo = viewModel.eventRepo,
-        relayIcons = relayIcons,
-        repostPubkeys = repostPubkeys,
-        repostTime = repostTime,
-        reactionDetails = reactionDetails,
-        zapDetails = zapDetails,
-        repostDetails = repostPubkeys,
-        onNavigateToProfileFromDetails = onNavigateToProfile,
-        onRelayClick = onRelayClick,
-        onFollowAuthor = { viewModel.toggleFollow(event.pubkey) },
-        onBlockAuthor = { viewModel.blockUser(event.pubkey) },
-        isFollowingAuthor = isFollowing,
-        isOwnEvent = event.pubkey == userPubkey,
-        nip05Repo = viewModel.nip05Repo,
-        onAddToList = onAddToList,
-        isInList = isInList,
-        onPin = onPin,
-        isPinned = isPinned,
-        onDelete = onDelete,
-        onQuotedNoteClick = onQuotedNoteClick,
-        noteActions = noteActions,
-        reactionEmojiUrls = eventReactionEmojiUrls,
-        resolvedEmojis = resolvedEmojis,
-        unicodeEmojis = unicodeEmojis,
-        onOpenEmojiLibrary = onOpenEmojiLibrary,
-        translationState = translationState,
-        onTranslate = { viewModel.translateEvent(event.id, event.content) }
-    )
+    when (event.kind) {
+        Nip82.KIND_SOFTWARE_APPLICATION -> {
+            SoftwareAppCard(
+                event = event,
+                profile = profileData,
+                onProfileClick = onProfileClick,
+                onNoteClick = onNoteClick
+            )
+        }
+        Nip82.KIND_SOFTWARE_RELEASE -> {
+            SoftwareReleaseCard(
+                event = event,
+                profile = profileData,
+                onProfileClick = onProfileClick,
+                onNoteClick = onNoteClick
+            )
+        }
+        Nip82.KIND_SOFTWARE_ASSET -> {
+            SoftwareAssetCard(
+                event = event,
+                profile = profileData,
+                onProfileClick = onProfileClick,
+                onNoteClick = onNoteClick
+            )
+        }
+        else -> {
+            PostCard(
+                event = event,
+                profile = profileData,
+                onReply = onReply,
+                onProfileClick = onProfileClick,
+                onNavigateToProfile = onNavigateToProfile,
+                onNoteClick = onNoteClick,
+                onReact = onReact,
+                userReactionEmojis = userEmojis,
+                onRepost = onRepost,
+                onQuote = onQuote,
+                hasUserReposted = hasUserReposted,
+                repostCount = repostCount,
+                onZap = onZap,
+                hasUserZapped = hasUserZapped,
+                likeCount = likeCount,
+                replyCount = replyCount,
+                zapSats = zapSats,
+                isZapAnimating = isZapAnimating,
+                isZapInProgress = isZapInProgress,
+                eventRepo = viewModel.eventRepo,
+                relayIcons = relayIcons,
+                repostPubkeys = repostPubkeys,
+                repostTime = repostTime,
+                reactionDetails = reactionDetails,
+                zapDetails = zapDetails,
+                repostDetails = repostPubkeys,
+                onNavigateToProfileFromDetails = onNavigateToProfile,
+                onRelayClick = onRelayClick,
+                onFollowAuthor = { viewModel.toggleFollow(event.pubkey) },
+                onBlockAuthor = { viewModel.blockUser(event.pubkey) },
+                isFollowingAuthor = isFollowing,
+                isOwnEvent = event.pubkey == userPubkey,
+                nip05Repo = viewModel.nip05Repo,
+                onAddToList = onAddToList,
+                isInList = isInList,
+                onPin = onPin,
+                isPinned = isPinned,
+                onDelete = onDelete,
+                onQuotedNoteClick = onQuotedNoteClick,
+                noteActions = noteActions,
+                reactionEmojiUrls = eventReactionEmojiUrls,
+                resolvedEmojis = resolvedEmojis,
+                unicodeEmojis = unicodeEmojis,
+                onOpenEmojiLibrary = onOpenEmojiLibrary,
+                translationState = translationState,
+                onTranslate = { viewModel.translateEvent(event.id, event.content) }
+            )
+        }
+    }
 }
 
 @Composable

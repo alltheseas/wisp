@@ -1,5 +1,6 @@
 package com.wisp.app.ui.component
 
+import android.content.Intent
 import android.net.Uri
 import android.util.LruCache
 import androidx.annotation.OptIn
@@ -67,6 +68,7 @@ import androidx.media3.ui.PlayerView
 import coil3.compose.AsyncImage
 import com.wisp.app.R
 import com.wisp.app.nostr.Nip19
+import com.wisp.app.nostr.Nip82
 import com.wisp.app.nostr.toHex
 import com.wisp.app.nostr.NostrEvent
 import com.wisp.app.nostr.NostrUriData
@@ -503,6 +505,20 @@ fun RichContent(
                                     UnsupportedKindBadge(kind = kind, style = style)
                                 }
                             }
+                            kind != null && Nip82.isSoftwareEvent(kind) -> {
+                                if (eventRepo != null && segment.author != null) {
+                                    InlineSoftwareAppCard(
+                                        kind = kind,
+                                        dTag = segment.dTag,
+                                        author = segment.author,
+                                        relayHints = segment.relays,
+                                        eventRepo = eventRepo,
+                                        onProfileClick = onProfileClick
+                                    )
+                                } else {
+                                    UnsupportedKindBadge(kind = kind, style = style)
+                                }
+                            }
                             else -> UnsupportedKindBadge(kind = kind, style = style)
                         }
                     }
@@ -893,6 +909,138 @@ private fun LiveStreamCard(
                             } else Modifier
                         )
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun InlineSoftwareAppCard(
+    kind: Int,
+    dTag: String,
+    author: String,
+    relayHints: List<String>,
+    eventRepo: EventRepository,
+    onProfileClick: ((String) -> Unit)?
+) {
+    val version by eventRepo.quotedEventVersion.collectAsState()
+    val event = remember(author, dTag, kind, version) {
+        eventRepo.findAddressableEvent(kind, author, dTag)
+    }
+    val profile = remember(author, version) { eventRepo.getProfileData(author) }
+
+    val effectiveRelayHints = remember(relayHints) {
+        if (relayHints.isEmpty()) Nip82.DEFAULT_RELAYS else relayHints
+    }
+
+    LaunchedEffect(author, dTag, kind) {
+        if (eventRepo.findAddressableEvent(kind, author, dTag) == null) {
+            eventRepo.requestAddressableEvent(kind, author, dTag, effectiveRelayHints)
+        }
+    }
+
+    val appName = remember(event) { event?.let { Nip82.getAppName(it.tags) } }
+    val iconUrl = remember(event) { event?.let { Nip82.getAppIcon(it.tags) } }
+    val description = remember(event) { event?.content?.ifBlank { null } }
+    val platformLabels = remember(event) { event?.let { Nip82.getPlatformLabels(it.tags) } ?: emptyList() }
+    val license = remember(event) { event?.let { Nip82.getLicense(it.tags) } }
+
+    val context = LocalContext.current
+
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        color = MaterialTheme.colorScheme.surface,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp)
+            .clickable(enabled = event != null) {
+                val identifier = event?.let { Nip82.getIdentifier(it.tags) } ?: dTag
+                try {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$identifier"))
+                    intent.setPackage("dev.zapstore.alpha")
+                    context.startActivity(intent)
+                } catch (_: Exception) {
+                    try { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://zapstore.dev/apps/$identifier"))) } catch (_: Exception) {}
+                }
+            }
+    ) {
+        if (event == null) {
+            Row(
+                modifier = Modifier.padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.width(14.dp).height(14.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = "Loading software event...",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        } else {
+            Column(modifier = Modifier.padding(14.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (iconUrl != null) {
+                        AsyncImage(
+                            model = iconUrl,
+                            contentDescription = appName,
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                        )
+                        Spacer(Modifier.width(10.dp))
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = appName ?: dTag,
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        if (platformLabels.isNotEmpty() || license != null) {
+                            Text(
+                                text = (platformLabels + listOfNotNull(license)).joinToString(" · "),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
+                if (!description.isNullOrBlank()) {
+                    Text(
+                        text = description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = 6.dp)
+                    )
+                }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(top = 6.dp)
+                ) {
+                    ProfilePicture(url = profile?.picture, size = 20)
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = profile?.displayString ?: "${author.take(8)}...${author.takeLast(4)}",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = if (onProfileClick != null) {
+                            Modifier.clickable { onProfileClick(author) }
+                        } else Modifier
+                    )
                 }
             }
         }
