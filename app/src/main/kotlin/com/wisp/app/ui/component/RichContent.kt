@@ -959,7 +959,7 @@ private fun InlineSoftwareAppCard(
                 val identifier = event?.let { Nip82.getIdentifier(it.tags) } ?: dTag
                 try {
                     val intent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$identifier"))
-                    intent.setPackage("dev.zapstore.alpha")
+                    intent.setPackage("dev.zapstore.app")
                     context.startActivity(intent)
                 } catch (_: Exception) {
                     try { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://zapstore.dev/apps/$identifier"))) } catch (_: Exception) {}
